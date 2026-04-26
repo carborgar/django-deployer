@@ -77,7 +77,7 @@ Environment=DEPLOYER_APPS_DIR=$APPS_DIR
 Environment=DEPLOYER_DB_PATH=$DEPLOYER_DIR/deployer.db
 Environment=DEPLOYER_NGINX_DIR=/etc/nginx/sites-enabled
 Environment=DEPLOYER_NGINX_CONF=/etc/nginx/sites-enabled/deployer
-ExecStart=$DEPLOYER_DIR/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port $DEPLOYER_PORT --workers 1
+ExecStart=$DEPLOYER_DIR/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port $DEPLOYER_PORT --workers 1 --root-path /deployer
 Restart=on-failure
 RestartSec=5s
 StandardOutput=journal

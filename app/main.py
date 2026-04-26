@@ -5,7 +5,6 @@ from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 from app.models import init_db
 from app.routers import apps, deployments, envvars, commands, logs
@@ -14,8 +13,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 scheduler = AsyncIOScheduler()
-templates = Jinja2Templates(directory="app/templates")
-templates.env.globals["root_path"] = os.environ.get("DEPLOYER_ROOT_PATH", "")
 
 
 @asynccontextmanager

@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Depends, Form, Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import os
 
 from app.database import get_db
 from app.models import App, DeployCommand
+from app.templating import templates
 
 router = APIRouter(prefix="/apps/{app_id}/commands")
-templates = Jinja2Templates(directory="app/templates")
 _ROOT = os.environ.get("DEPLOYER_ROOT_PATH", "")
 
 

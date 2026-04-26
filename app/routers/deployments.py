@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Deployment
+from app.templating import templates
 
 router = APIRouter(prefix="/deployments")
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/{deployment_id}", response_class=HTMLResponse)

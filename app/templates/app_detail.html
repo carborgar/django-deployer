@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}{{ app.name }} — Django Deployer{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex items-start justify-between">
+    <div>
+      <h1 class="text-2xl font-bold flex items-center gap-3">
+        {{ app.name }}
+        {% set last = app.deployments[-1] if app.deployments else None %}
+        {% set status = last.status if last else 'none' %}
+        <span class="text-sm font-normal px-2 py-0.5 rounded
+          {% if status == 'success' %}bg-green-800 text-green-300
+          {% elif status == 'running' %}bg-yellow-800 text-yellow-300
+          {% elif status == 'failed' %}bg-red-800 text-red-300
+          {% else %}bg-gray-700 text-gray-400{% endif %}">
+          {{ status }}
+        </span>
+      </h1>
+      <p class="text-gray-400 mt-1">
+        <a href="{{ app.repo_url }}" target="_blank" class="hover:text-indigo-300">{{ app.repo_url }}</a>
+        @ <span class="font-mono">{{ app.branch }}</span>
+        &nbsp;→&nbsp; <span class="font-mono">/{{ app.path_prefix }}/</span> (puerto {{ app.port }})
+      </p>
+    </div>
+    <div class="flex gap-2">
+      <form method="post" action="/apps/{{ app.id }}/deploy">
+        <button class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg transition font-medium">
+          🚀 Deploy manual
+        </button>
+      </form>
+      <a href="/apps/{{ app.id }}/edit" class="bg-gray-700 hover:bg-gray-600 text-gray-200 px-4 py-2 rounded-lg transition">
+        ✏️ Editar
+      </a>
+      <form method="post" action="/apps/{{ app.id }}/delete"
+            onsubmit="return confirm('¿Seguro que quieres eliminar {{ app.name }}?')">
+        <button class="bg-red-900 hover:bg-red-700 text-red-200 px-4 py-2 rounded-lg transition">🗑</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Info cards -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-gray-800 rounded-xl p-4">
+      <p class="text-xs text-gray-500 mb-1">Commit desplegado</p>
+      <p class="font-mono text-green-400 text-lg">{{ app.deployed_commit[:7] if app.deployed_commit else '—' }}</p>
+    </div>
+    <div class="bg-gray-800 rounded-xl p-4">
+      <p class="text-xs text-gray-500 mb-1">Último check</p>
+      <p class="text-sm">{{ app.last_checked_at.strftime('%d/%m %H:%M:%S') if app.last_checked_at else '—' }}</p>
+    </div>
+    <div class="bg-gray-800 rounded-xl p-4">
+      <p class="text-xs text-gray-500 mb-1">Estado polling</p>
+      <p class="text-sm {% if app.active %}text-green-400{% else %}text-gray-500{% endif %}">
+        {{ '✓ activo' if app.active else '⏸ pausado' }}
+      </p>
+    </div>
+    <div class="bg-gray-800 rounded-xl p-4">
+      <p class="text-xs text-gray-500 mb-1">Total deploys</p>
+      <p class="text-lg">{{ app.deployments|length }}</p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="border-b border-gray-700">
+    <nav class="flex gap-6" id="tabs">
+      <button onclick="showTab('logs')" class="tab-btn pb-2 border-b-2 border-indigo-500 text-indigo-300 text-sm font-medium">
+        📋 Logs de app
+      </button>
+      <button onclick="showTab('history')" class="tab-btn pb-2 border-b-2 border-transparent text-gray-400 text-sm font-medium hover:text-gray-200">
+        🕐 Historial
+      </button>
+      <a href="/apps/{{ app.id }}/env/" class="pb-2 text-gray-400 text-sm font-medium hover:text-gray-200">
+        🔑 Variables de entorno
+      </a>
+      <a href="/apps/{{ app.id }}/commands/" class="pb-2 text-gray-400 text-sm font-medium hover:text-gray-200">
+        ⚙️ Comandos
+      </a>
+    </nav>
+  </div>
+
+  <!-- Tab: App logs -->
+  <div id="tab-logs">
+    <div class="bg-gray-900 rounded-xl p-4 border border-gray-700">
+      <div class="flex justify-between items-center mb-3">
+        <p class="text-sm text-gray-400">Últimas 200 líneas del log de gunicorn</p>
+        <button onclick="loadAppLogs()" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded">↻ Refrescar</button>
+      </div>
+      <pre id="app-log-content" class="log-area text-xs text-green-300 overflow-auto max-h-96 whitespace-pre-wrap">Cargando…</pre>
+    </div>
+  </div>
+
+  <!-- Tab: Historial -->
+  <div id="tab-history" class="hidden">
+    {% if deployments %}
+    <div class="space-y-2">
+      {% for d in deployments %}
+      <a href="/deployments/{{ d.id }}" class="block bg-gray-800 hover:bg-gray-750 rounded-xl p-4 transition">
+        <div class="flex items-center gap-4">
+          <span class="w-2 h-2 rounded-full flex-shrink-0
+            {% if d.status == 'success' %}bg-green-500
+            {% elif d.status == 'running' %}bg-yellow-400 animate-pulse
+            {% elif d.status == 'failed' %}bg-red-500
+            {% else %}bg-gray-500{% endif %}"></span>
+          <span class="font-mono text-sm text-indigo-300">{{ d.commit_sha[:7] }}</span>
+          <span class="text-sm text-gray-300 flex-1 truncate">{{ d.commit_message or '—' }}</span>
+          <span class="text-xs text-gray-500">{{ d.started_at.strftime('%d/%m/%Y %H:%M') }}</span>
+          {% if d.duration_seconds is not none %}
+          <span class="text-xs text-gray-500">{{ d.duration_seconds }}s</span>
+          {% endif %}
+          <span class="text-xs px-2 py-0.5 rounded
+            {% if d.status == 'success' %}bg-green-900 text-green-300
+            {% elif d.status == 'running' %}bg-yellow-900 text-yellow-300
+            {% elif d.status == 'failed' %}bg-red-900 text-red-300
+            {% else %}bg-gray-700 text-gray-400{% endif %}">
+            {{ d.status }}
+          </span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-center py-8">Sin historial de deploys todavía.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+function showTab(name) {
+  document.getElementById('tab-logs').classList.toggle('hidden', name !== 'logs');
+  document.getElementById('tab-history').classList.toggle('hidden', name !== 'history');
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    const active = (i === 0 && name === 'logs') || (i === 1 && name === 'history');
+    btn.classList.toggle('border-indigo-500', active);
+    btn.classList.toggle('text-indigo-300', active);
+    btn.classList.toggle('border-transparent', !active);
+    btn.classList.toggle('text-gray-400', !active);
+  });
+}
+
+async function loadAppLogs() {
+  const el = document.getElementById('app-log-content');
+  try {
+    const r = await fetch('/logs/app/{{ app.id }}/tail?lines=200');
+    const data = await r.json();
+    el.textContent = data.lines.join('\n') || '(sin logs)';
+    el.scrollTop = el.scrollHeight;
+  } catch(e) { el.textContent = 'Error al cargar logs'; }
+}
+
+loadAppLogs();
+setInterval(loadAppLogs, 5000);
+</script>
+{% endblock %}

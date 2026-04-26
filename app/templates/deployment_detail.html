@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Deploy #{{ deployment.id }} — Django Deployer{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-4">
+  <div class="flex items-center gap-4">
+    <a href="/apps/{{ deployment.app_id }}" class="text-gray-400 hover:text-white">← Volver</a>
+    <h1 class="text-xl font-bold">Deploy #{{ deployment.id }}</h1>
+    <span class="text-sm px-2 py-0.5 rounded
+      {% if deployment.status == 'success' %}bg-green-800 text-green-300
+      {% elif deployment.status == 'running' %}bg-yellow-800 text-yellow-300
+      {% elif deployment.status == 'failed' %}bg-red-800 text-red-300
+      {% else %}bg-gray-700 text-gray-400{% endif %}">
+      {{ deployment.status }}
+    </span>
+  </div>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-gray-800 rounded-xl p-4">
+      <p class="text-xs text-gray-500 mb-1">Commit</p>
+      <p class="font-mono text-indigo-300">{{ deployment.commit_sha[:7] }}</p>
+    </div>
+    <div class="bg-gray-800 rounded-xl p-4">
+      <p class="text-xs text-gray-500 mb-1">Mensaje</p>
+      <p class="text-sm truncate">{{ deployment.commit_message or '—' }}</p>
+    </div>
+    <div class="bg-gray-800 rounded-xl p-4">
+      <p class="text-xs text-gray-500 mb-1">Iniciado</p>
+      <p class="text-sm">{{ deployment.started_at.strftime('%d/%m/%Y %H:%M:%S') }}</p>
+    </div>
+    <div class="bg-gray-800 rounded-xl p-4">
+      <p class="text-xs text-gray-500 mb-1">Duración</p>
+      <p class="text-sm">{{ deployment.duration_seconds ~ 's' if deployment.duration_seconds is not none else '—' }}</p>
+    </div>
+  </div>
+
+  <!-- Log streaming -->
+  <div class="bg-gray-900 rounded-xl p-4 border border-gray-700">
+    <p class="text-sm text-gray-400 mb-3">Log de despliegue</p>
+    <pre id="log-output" class="log-area text-xs text-green-300 overflow-auto max-h-[60vh] whitespace-pre-wrap">Conectando…</pre>
+  </div>
+</div>
+
+<script>
+const logEl = document.getElementById('log-output');
+const deploymentId = {{ deployment.id }};
+const status = "{{ deployment.status }}";
+
+if (status === 'running') {
+  logEl.textContent = '';
+  const es = new EventSource('/logs/deployment/' + deploymentId + '/stream');
+  es.onmessage = (e) => {
+    if (e.data === '[FIN]') { es.close(); return; }
+    logEl.textContent += e.data + '\n';
+    logEl.scrollTop = logEl.scrollHeight;
+  };
+  es.onerror = () => { es.close(); };
+} else {
+  // Ya terminado: cargar archivo completo
+  fetch('/logs/deployment/' + deploymentId + '/stream')
+    .catch(() => {});
+  // Mostramos el log guardado en el modelo si existe
+  logEl.textContent = {{ deployment.log | tojson }} || '(sin log en BD — ver archivo en servidor)';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,154 @@
+from fastapi import APIRouter, Depends, Form, Request, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.models import App, DeployCommand
+from app.services import deployer, nginx_manager
+
+router = APIRouter()
+templates = Jinja2Templates(directory="app/templates")
+
+
+@router.get("/", response_class=HTMLResponse)
+async def dashboard(request: Request, db: Session = Depends(get_db)):
+    apps = db.query(App).order_by(App.name).all()
+    return templates.TemplateResponse("dashboard.html", {"request": request, "apps": apps})
+
+
+@router.get("/apps/new", response_class=HTMLResponse)
+async def new_app_form(request: Request):
+    return templates.TemplateResponse("app_form.html", {"request": request, "app": None})
+
+
+@router.post("/apps/new")
+async def create_app(
+    request: Request,
+    name: str = Form(...),
+    repo_url: str = Form(...),
+    branch: str = Form("main"),
+    path_prefix: str = Form(...),
+    port: int = Form(...),
+    github_token: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    if db.query(App).filter(App.name == name).first():
+        return templates.TemplateResponse(
+            "app_form.html",
+            {"request": request, "app": None, "error": f"Ya existe una app con el nombre '{name}'"},
+            status_code=400,
+        )
+
+    from app.crypto import encrypt
+    encrypted_token = encrypt(github_token) if github_token else None
+
+    app = App(
+        name=name,
+        repo_url=repo_url,
+        branch=branch,
+        path_prefix=path_prefix.strip("/"),
+        port=port,
+        github_token=encrypted_token,
+    )
+    db.add(app)
+    db.commit()
+    db.refresh(app)
+
+    # Añadir comandos por defecto
+    defaults = [
+        DeployCommand(app_id=app.id, order=0, command="pip install -r requirements.txt"),
+        DeployCommand(app_id=app.id, order=1, command="python manage.py migrate --noinput"),
+        DeployCommand(app_id=app.id, order=2, command="python manage.py collectstatic --noinput"),
+    ]
+    db.add_all(defaults)
+    db.commit()
+
+    nginx_manager.generate_and_reload(app)
+
+    return RedirectResponse(url=f"/apps/{app.id}", status_code=303)
+
+
+@router.get("/apps/{app_id}", response_class=HTMLResponse)
+async def app_detail(app_id: int, request: Request, db: Session = Depends(get_db)):
+    app = db.query(App).filter(App.id == app_id).first()
+    if not app:
+        raise HTTPException(status_code=404)
+    deployments = app.deployments[-10:][::-1]
+    return templates.TemplateResponse(
+        "app_detail.html",
+        {"request": request, "app": app, "deployments": deployments},
+    )
+
+
+@router.get("/apps/{app_id}/edit", response_class=HTMLResponse)
+async def edit_app_form(app_id: int, request: Request, db: Session = Depends(get_db)):
+    app = db.query(App).filter(App.id == app_id).first()
+    if not app:
+        raise HTTPException(status_code=404)
+    return templates.TemplateResponse("app_form.html", {"request": request, "app": app})
+
+
+@router.post("/apps/{app_id}/edit")
+async def edit_app(
+    app_id: int,
+    request: Request,
+    repo_url: str = Form(...),
+    branch: str = Form("main"),
+    path_prefix: str = Form(...),
+    port: int = Form(...),
+    github_token: str = Form(""),
+    active: bool = Form(False),
+    db: Session = Depends(get_db),
+):
+    app = db.query(App).filter(App.id == app_id).first()
+    if not app:
+        raise HTTPException(status_code=404)
+
+    from app.crypto import encrypt
+    app.repo_url = repo_url
+    app.branch = branch
+    app.path_prefix = path_prefix.strip("/")
+    app.port = port
+    app.active = active
+    if github_token:
+        app.github_token = encrypt(github_token)
+
+    db.commit()
+    nginx_manager.generate_and_reload(app)
+    return RedirectResponse(url=f"/apps/{app_id}", status_code=303)
+
+
+@router.post("/apps/{app_id}/delete")
+async def delete_app(app_id: int, db: Session = Depends(get_db)):
+    app = db.query(App).filter(App.id == app_id).first()
+    if not app:
+        raise HTTPException(status_code=404)
+    nginx_manager.remove(app)
+    db.delete(app)
+    db.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+
+@router.post("/apps/{app_id}/deploy")
+async def manual_deploy(app_id: int, db: Session = Depends(get_db)):
+    app = db.query(App).filter(App.id == app_id).first()
+    if not app:
+        raise HTTPException(status_code=404)
+    import asyncio
+    asyncio.create_task(deployer.deploy_app(app_id))
+    return RedirectResponse(url=f"/apps/{app_id}", status_code=303)
+
+
+@router.get("/apps/{app_id}/status")
+async def app_status(app_id: int, db: Session = Depends(get_db)):
+    """Endpoint ligero para HTMX polling de estado."""
+    app = db.query(App).filter(App.id == app_id).first()
+    if not app:
+        raise HTTPException(status_code=404)
+    last = app.deployments[-1] if app.deployments else None
+    return {
+        "deployed_commit": app.deployed_commit,
+        "last_status": last.status if last else "none",
+        "last_checked_at": app.last_checked_at.isoformat() if app.last_checked_at else None,
+    }

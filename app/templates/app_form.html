@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ app.name if app else 'Nueva app' }} — Django Deployer{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+  <h1 class="text-2xl font-bold mb-6">{{ 'Editar' if app else 'Registrar nueva' }} app</h1>
+
+  {% if error %}
+  <div class="bg-red-900 border border-red-700 text-red-200 rounded-lg px-4 py-3 mb-4">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="{{ '/apps/' + app.id|string + '/edit' if app else '/apps/new' }}"
+        class="bg-gray-800 rounded-xl p-6 space-y-5">
+
+    {% if not app %}
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-1">Nombre <span class="text-red-400">*</span></label>
+      <input type="text" name="name" required placeholder="mi-app"
+             class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+             pattern="[a-z0-9\-]+" title="Solo minúsculas, números y guiones"/>
+      <p class="text-xs text-gray-500 mt-1">Solo minúsculas, números y guiones. Se usa como identificador único.</p>
+    </div>
+    {% endif %}
+
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-1">URL del repositorio GitHub <span class="text-red-400">*</span></label>
+      <input type="url" name="repo_url" required
+             value="{{ app.repo_url if app else '' }}"
+             placeholder="https://github.com/usuario/mi-app"
+             class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"/>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-1">Branch</label>
+        <input type="text" name="branch" value="{{ app.branch if app else 'main' }}"
+               class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"/>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-1">Puerto <span class="text-red-400">*</span></label>
+        <input type="number" name="port" required min="1024" max="65535"
+               value="{{ app.port if app else '8001' }}"
+               class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"/>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-1">Path prefix <span class="text-red-400">*</span></label>
+      <div class="flex items-center">
+        <span class="bg-gray-600 border border-gray-600 px-3 py-2 rounded-l-lg text-gray-400">/</span>
+        <input type="text" name="path_prefix" required
+               value="{{ app.path_prefix if app else '' }}"
+               placeholder="mi-app"
+               class="flex-1 bg-gray-700 border border-gray-600 border-l-0 rounded-r-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"/>
+      </div>
+      <p class="text-xs text-gray-500 mt-1">La app estará accesible en <code>/mi-app/</code></p>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-1">
+        GitHub Token <span class="text-gray-500">(solo para repos privados)</span>
+      </label>
+      <input type="password" name="github_token"
+             placeholder="{{ '••••••••' if app and app.github_token else 'ghp_...' }}"
+             class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"/>
+    </div>
+
+    {% if app %}
+    <div class="flex items-center gap-3">
+      <input type="checkbox" name="active" id="active" value="true"
+             {% if app.active %}checked{% endif %}
+             class="w-4 h-4 accent-indigo-500"/>
+      <label for="active" class="text-sm text-gray-300">App activa (polling habilitado)</label>
+    </div>
+    {% endif %}
+
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg transition font-medium">
+        {{ 'Guardar cambios' if app else 'Registrar app' }}
+      </button>
+      <a href="{{ '/apps/' + app.id|string if app else '/' }}"
+         class="bg-gray-700 hover:bg-gray-600 text-gray-200 px-6 py-2 rounded-lg transition">
+        Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

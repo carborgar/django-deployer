@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Comandos de despliegue — {{ app.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+  <div class="flex items-center gap-4">
+    <a href="/apps/{{ app.id }}" class="text-gray-400 hover:text-white">← {{ app.name }}</a>
+    <h1 class="text-xl font-bold">Comandos de despliegue</h1>
+  </div>
+
+  <p class="text-sm text-gray-400">
+    Se ejecutan en orden dentro del virtualenv de la app, después de <code>pip install</code>.
+  </p>
+
+  <!-- Lista de comandos -->
+  {% if app.deploy_commands %}
+  <div class="bg-gray-800 rounded-xl overflow-hidden divide-y divide-gray-700">
+    {% for cmd in app.deploy_commands %}
+    <div class="flex items-center gap-3 px-4 py-3">
+      <span class="text-gray-500 text-sm w-6 text-center">{{ loop.index }}</span>
+      <code class="flex-1 text-sm text-green-300 font-mono bg-gray-900 px-3 py-1.5 rounded">{{ cmd.command }}</code>
+      <div class="flex gap-1">
+        <form method="post" action="/apps/{{ app.id }}/commands/{{ cmd.id }}/move">
+          <input type="hidden" name="direction" value="up"/>
+          <button class="text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700" {% if loop.first %}disabled{% endif %}>↑</button>
+        </form>
+        <form method="post" action="/apps/{{ app.id }}/commands/{{ cmd.id }}/move">
+          <input type="hidden" name="direction" value="down"/>
+          <button class="text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700" {% if loop.last %}disabled{% endif %}>↓</button>
+        </form>
+        <form method="post" action="/apps/{{ app.id }}/commands/{{ cmd.id }}/delete"
+              onsubmit="return confirm('¿Eliminar este comando?')">
+          <button class="text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-gray-700">✕</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-gray-500">Sin comandos configurados.</p>
+  {% endif %}
+
+  <!-- Añadir comando -->
+  <div class="bg-gray-800 rounded-xl p-5">
+    <h2 class="font-medium mb-4">Añadir comando</h2>
+    <form method="post" action="/apps/{{ app.id }}/commands/add" class="flex gap-3">
+      <input type="text" name="command" required
+             placeholder="python manage.py migrate --noinput"
+             class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-indigo-500"/>
+      <input type="number" name="order" value="{{ app.deploy_commands[-1].order + 1 if app.deploy_commands else 0 }}"
+             class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
+             placeholder="orden"/>
+      <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg transition">
+        Añadir
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

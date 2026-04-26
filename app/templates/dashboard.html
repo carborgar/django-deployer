@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Django Deployer{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  <h1 class="text-2xl font-bold mb-6">Apps desplegadas</h1>
+
+  {% if not apps %}
+  <div class="bg-gray-800 rounded-xl p-10 text-center text-gray-400">
+    <p class="text-4xl mb-3">🚀</p>
+    <p class="text-lg">Aún no tienes ninguna app registrada.</p>
+    <a href="/apps/new" class="mt-4 inline-block bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg transition">
+      Registrar primera app
+    </a>
+  </div>
+  {% else %}
+  <div class="grid grid-cols-1 gap-4">
+    {% for app in apps %}
+    <div class="bg-gray-800 rounded-xl p-5 flex items-center gap-5 hover:bg-gray-750 transition"
+         hx-get="/apps/{{ app.id }}/status"
+         hx-trigger="every 5s"
+         hx-swap="none"
+         hx-on::after-request="updateCard({{ app.id }}, event)">
+
+      <!-- Status dot -->
+      {% set last = app.deployments[-1] if app.deployments else None %}
+      {% set status = last.status if last else 'none' %}
+      <span id="dot-{{ app.id }}" class="w-3 h-3 rounded-full flex-shrink-0
+        {% if status == 'success' %}bg-green-500
+        {% elif status == 'running' %}bg-yellow-400 animate-pulse
+        {% elif status == 'failed' %}bg-red-500
+        {% else %}bg-gray-500{% endif %}"></span>
+
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-3">
+          <a href="/apps/{{ app.id }}" class="font-semibold text-white hover:text-indigo-300 transition">
+            {{ app.name }}
+          </a>
+          <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded font-mono">/{{ app.path_prefix }}/</span>
+          {% if not app.active %}
+          <span class="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded">pausada</span>
+          {% endif %}
+        </div>
+        <div class="text-sm text-gray-400 mt-1 flex gap-4">
+          <span>{{ app.repo_url.split('/')[-1] }} @ {{ app.branch }}</span>
+          {% if app.deployed_commit %}
+          <span class="font-mono text-green-400">{{ app.deployed_commit[:7] }}</span>
+          {% else %}
+          <span class="text-gray-500">sin desplegar</span>
+          {% endif %}
+          {% if app.last_checked_at %}
+          <span class="text-gray-500">último check: {{ app.last_checked_at.strftime('%H:%M:%S') }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="flex gap-2 flex-shrink-0">
+        <form method="post" action="/apps/{{ app.id }}/deploy">
+          <button class="bg-indigo-700 hover:bg-indigo-600 text-white text-sm px-3 py-1.5 rounded transition"
+                  {% if status == 'running' %}disabled{% endif %}>
+            {% if status == 'running' %}Desplegando…{% else %}Deploy{% endif %}
+          </button>
+        </form>
+        <a href="/apps/{{ app.id }}" class="bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm px-3 py-1.5 rounded transition">
+          Ver
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function updateCard(appId, event) {
+  try {
+    const data = JSON.parse(event.detail.xhr.responseText);
+    const dot = document.getElementById('dot-' + appId);
+    if (!dot) return;
+    dot.className = 'w-3 h-3 rounded-full flex-shrink-0';
+    if (data.last_status === 'success') dot.classList.add('bg-green-500');
+    else if (data.last_status === 'running') dot.classList.add('bg-yellow-400', 'animate-pulse');
+    else if (data.last_status === 'failed') dot.classList.add('bg-red-500');
+    else dot.classList.add('bg-gray-500');
+  } catch(e) {}
+}
+</script>
+{% endblock %}

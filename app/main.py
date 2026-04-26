@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 scheduler = AsyncIOScheduler()
 templates = Jinja2Templates(directory="app/templates")
+templates.env.globals["root_path"] = os.environ.get("DEPLOYER_ROOT_PATH", "")
 
 
 @asynccontextmanager

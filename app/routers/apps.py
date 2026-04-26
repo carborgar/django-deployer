@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Form, Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+import os
 
 from app.database import get_db
 from app.models import App, DeployCommand
@@ -9,6 +10,7 @@ from app.services import deployer, nginx_manager
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+_ROOT = os.environ.get("DEPLOYER_ROOT_PATH", "")
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -66,7 +68,7 @@ async def create_app(
 
     nginx_manager.generate_and_reload(app)
 
-    return RedirectResponse(url=f"/apps/{app.id}", status_code=303)
+    return RedirectResponse(url=f"{_ROOT}/apps/{app.id}", status_code=303)
 
 
 @router.get("/apps/{app_id}", response_class=HTMLResponse)
@@ -116,7 +118,7 @@ async def edit_app(
 
     db.commit()
     nginx_manager.generate_and_reload(app)
-    return RedirectResponse(url=f"/apps/{app_id}", status_code=303)
+    return RedirectResponse(url=f"{_ROOT}/apps/{app_id}", status_code=303)
 
 
 @router.post("/apps/{app_id}/delete")
@@ -127,7 +129,7 @@ async def delete_app(app_id: int, db: Session = Depends(get_db)):
     nginx_manager.remove(app)
     db.delete(app)
     db.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url=f"{_ROOT}/", status_code=303)
 
 
 @router.post("/apps/{app_id}/deploy")
@@ -137,7 +139,7 @@ async def manual_deploy(app_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404)
     import asyncio
     asyncio.create_task(deployer.deploy_app(app_id))
-    return RedirectResponse(url=f"/apps/{app_id}", status_code=303)
+    return RedirectResponse(url=f"{_ROOT}/apps/{app_id}", status_code=303)
 
 
 @router.get("/apps/{app_id}/status")

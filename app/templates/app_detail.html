@@ -26,15 +26,15 @@
       </p>
     </div>
     <div class="flex gap-2">
-      <form method="post" action="/apps/{{ app.id }}/deploy">
+      <form method="post" action="{{ root_path }}/apps/{{ app.id }}/deploy">
         <button class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg transition font-medium">
           🚀 Deploy manual
         </button>
       </form>
-      <a href="/apps/{{ app.id }}/edit" class="bg-gray-700 hover:bg-gray-600 text-gray-200 px-4 py-2 rounded-lg transition">
+      <a href="{{ root_path }}/apps/{{ app.id }}/edit" class="bg-gray-700 hover:bg-gray-600 text-gray-200 px-4 py-2 rounded-lg transition">
         ✏️ Editar
       </a>
-      <form method="post" action="/apps/{{ app.id }}/delete"
+      <form method="post" action="{{ root_path }}/apps/{{ app.id }}/delete"
             onsubmit="return confirm('¿Seguro que quieres eliminar {{ app.name }}?')">
         <button class="bg-red-900 hover:bg-red-700 text-red-200 px-4 py-2 rounded-lg transition">🗑</button>
       </form>
@@ -72,10 +72,10 @@
       <button onclick="showTab('history')" class="tab-btn pb-2 border-b-2 border-transparent text-gray-400 text-sm font-medium hover:text-gray-200">
         🕐 Historial
       </button>
-      <a href="/apps/{{ app.id }}/env/" class="pb-2 text-gray-400 text-sm font-medium hover:text-gray-200">
+      <a href="{{ root_path }}/apps/{{ app.id }}/env/" class="pb-2 text-gray-400 text-sm font-medium hover:text-gray-200">
         🔑 Variables de entorno
       </a>
-      <a href="/apps/{{ app.id }}/commands/" class="pb-2 text-gray-400 text-sm font-medium hover:text-gray-200">
+      <a href="{{ root_path }}/apps/{{ app.id }}/commands/" class="pb-2 text-gray-400 text-sm font-medium hover:text-gray-200">
         ⚙️ Comandos
       </a>
     </nav>
@@ -97,7 +97,7 @@
     {% if deployments %}
     <div class="space-y-2">
       {% for d in deployments %}
-      <a href="/deployments/{{ d.id }}" class="block bg-gray-800 hover:bg-gray-750 rounded-xl p-4 transition">
+      <a href="{{ root_path }}/deployments/{{ d.id }}" class="block bg-gray-800 hover:bg-gray-750 rounded-xl p-4 transition">
         <div class="flex items-center gap-4">
           <span class="w-2 h-2 rounded-full flex-shrink-0
             {% if d.status == 'success' %}bg-green-500
@@ -144,7 +144,7 @@ function showTab(name) {
 async function loadAppLogs() {
   const el = document.getElementById('app-log-content');
   try {
-    const r = await fetch('/logs/app/{{ app.id }}/tail?lines=200');
+    const r = await fetch('{{ root_path }}/logs/app/{{ app.id }}/tail?lines=200');
     const data = await r.json();
     el.textContent = data.lines.join('\n') || '(sin logs)';
     el.scrollTop = el.scrollHeight;

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Form, Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+import os
 
 from app.crypto import encrypt, decrypt
 from app.database import get_db
@@ -9,6 +10,7 @@ from app.models import App, EnvVar
 
 router = APIRouter(prefix="/apps/{app_id}/env")
 templates = Jinja2Templates(directory="app/templates")
+_ROOT = os.environ.get("DEPLOYER_ROOT_PATH", "")
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -36,7 +38,7 @@ async def add_env(
     else:
         db.add(EnvVar(app_id=app_id, key=key, value_encrypted=encrypt(value)))
     db.commit()
-    return RedirectResponse(url=f"/apps/{app_id}/env/", status_code=303)
+    return RedirectResponse(url=f"{_ROOT}/apps/{app_id}/env/", status_code=303)
 
 
 @router.post("/bulk")
@@ -64,7 +66,7 @@ async def bulk_env(
             db.add(EnvVar(app_id=app_id, key=key, value_encrypted=encrypt(value)))
 
     db.commit()
-    return RedirectResponse(url=f"/apps/{app_id}/env/", status_code=303)
+    return RedirectResponse(url=f"{_ROOT}/apps/{app_id}/env/", status_code=303)
 
 
 @router.post("/{var_id}/delete")
@@ -74,4 +76,4 @@ async def delete_env(app_id: int, var_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404)
     db.delete(var)
     db.commit()
-    return RedirectResponse(url=f"/apps/{app_id}/env/", status_code=303)
+    return RedirectResponse(url=f"{_ROOT}/apps/{app_id}/env/", status_code=303)

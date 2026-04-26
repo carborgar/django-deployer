@@ -9,7 +9,7 @@
   <div class="bg-red-900 border border-red-700 text-red-200 rounded-lg px-4 py-3 mb-4">{{ error }}</div>
   {% endif %}
 
-  <form method="post" action="{{ '/apps/' + app.id|string + '/edit' if app else '/apps/new' }}"
+  <form method="post" action="{{ root_path + '/apps/' + app.id|string + '/edit' if app else root_path + '/apps/new' }}"
         class="bg-gray-800 rounded-xl p-6 space-y-5">
 
     {% if not app %}
@@ -78,7 +78,7 @@
       <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg transition font-medium">
         {{ 'Guardar cambios' if app else 'Registrar app' }}
       </button>
-      <a href="{{ '/apps/' + app.id|string if app else '/' }}"
+      <a href="{{ root_path + '/apps/' + app.id|string if app else root_path + '/' }}"
          class="bg-gray-700 hover:bg-gray-600 text-gray-200 px-6 py-2 rounded-lg transition">
         Cancelar
       </a>

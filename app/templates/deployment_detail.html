@@ -4,7 +4,7 @@
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-4">
   <div class="flex items-center gap-4">
-    <a href="/apps/{{ deployment.app_id }}" class="text-gray-400 hover:text-white">← Volver</a>
+    <a href="{{ root_path }}/apps/{{ deployment.app_id }}" class="text-gray-400 hover:text-white">← Volver</a>
     <h1 class="text-xl font-bold">Deploy #{{ deployment.id }}</h1>
     <span class="text-sm px-2 py-0.5 rounded
       {% if deployment.status == 'success' %}bg-green-800 text-green-300
@@ -45,10 +45,11 @@
 const logEl = document.getElementById('log-output');
 const deploymentId = {{ deployment.id }};
 const status = "{{ deployment.status }}";
+const rootPath = "{{ root_path }}";
 
 if (status === 'running') {
   logEl.textContent = '';
-  const es = new EventSource('/logs/deployment/' + deploymentId + '/stream');
+  const es = new EventSource(rootPath + '/logs/deployment/' + deploymentId + '/stream');
   es.onmessage = (e) => {
     if (e.data === '[FIN]') { es.close(); return; }
     logEl.textContent += e.data + '\n';
@@ -56,8 +57,7 @@ if (status === 'running') {
   };
   es.onerror = () => { es.close(); };
 } else {
-  // Ya terminado: cargar archivo completo
-  fetch('/logs/deployment/' + deploymentId + '/stream')
+  fetch(rootPath + '/logs/deployment/' + deploymentId + '/stream')
     .catch(() => {});
   // Mostramos el log guardado en el modelo si existe
   logEl.textContent = {{ deployment.log | tojson }} || '(sin log en BD — ver archivo en servidor)';

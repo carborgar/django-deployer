@@ -4,7 +4,7 @@
 {% block content %}
 <div class="max-w-2xl mx-auto space-y-6">
   <div class="flex items-center gap-4">
-    <a href="/apps/{{ app.id }}" class="text-gray-400 hover:text-white">← {{ app.name }}</a>
+    <a href="{{ root_path }}/apps/{{ app.id }}" class="text-gray-400 hover:text-white">← {{ app.name }}</a>
     <h1 class="text-xl font-bold">Comandos de despliegue</h1>
   </div>
 
@@ -20,15 +20,15 @@
       <span class="text-gray-500 text-sm w-6 text-center">{{ loop.index }}</span>
       <code class="flex-1 text-sm text-green-300 font-mono bg-gray-900 px-3 py-1.5 rounded">{{ cmd.command }}</code>
       <div class="flex gap-1">
-        <form method="post" action="/apps/{{ app.id }}/commands/{{ cmd.id }}/move">
+        <form method="post" action="{{ root_path }}/apps/{{ app.id }}/commands/{{ cmd.id }}/move">
           <input type="hidden" name="direction" value="up"/>
           <button class="text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700" {% if loop.first %}disabled{% endif %}>↑</button>
         </form>
-        <form method="post" action="/apps/{{ app.id }}/commands/{{ cmd.id }}/move">
+        <form method="post" action="{{ root_path }}/apps/{{ app.id }}/commands/{{ cmd.id }}/move">
           <input type="hidden" name="direction" value="down"/>
           <button class="text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700" {% if loop.last %}disabled{% endif %}>↓</button>
         </form>
-        <form method="post" action="/apps/{{ app.id }}/commands/{{ cmd.id }}/delete"
+        <form method="post" action="{{ root_path }}/apps/{{ app.id }}/commands/{{ cmd.id }}/delete"
               onsubmit="return confirm('¿Eliminar este comando?')">
           <button class="text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-gray-700">✕</button>
         </form>
@@ -43,7 +43,7 @@
   <!-- Añadir comando -->
   <div class="bg-gray-800 rounded-xl p-5">
     <h2 class="font-medium mb-4">Añadir comando</h2>
-    <form method="post" action="/apps/{{ app.id }}/commands/add" class="flex gap-3">
+    <form method="post" action="{{ root_path }}/apps/{{ app.id }}/commands/add" class="flex gap-3">
       <input type="text" name="command" required
              placeholder="python manage.py migrate --noinput"
              class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-indigo-500"/>

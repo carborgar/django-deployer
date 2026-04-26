@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends, Form, Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+import os
 
 from app.database import get_db
 from app.models import App, DeployCommand
 
 router = APIRouter(prefix="/apps/{app_id}/commands")
 templates = Jinja2Templates(directory="app/templates")
+_ROOT = os.environ.get("DEPLOYER_ROOT_PATH", "")
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -30,7 +32,7 @@ async def add_command(
         raise HTTPException(status_code=404)
     db.add(DeployCommand(app_id=app_id, command=command, order=order))
     db.commit()
-    return RedirectResponse(url=f"/apps/{app_id}/commands/", status_code=303)
+    return RedirectResponse(url=f"{_ROOT}/apps/{app_id}/commands/", status_code=303)
 
 
 @router.post("/{cmd_id}/delete")
@@ -40,7 +42,7 @@ async def delete_command(app_id: int, cmd_id: int, db: Session = Depends(get_db)
         raise HTTPException(status_code=404)
     db.delete(cmd)
     db.commit()
-    return RedirectResponse(url=f"/apps/{app_id}/commands/", status_code=303)
+    return RedirectResponse(url=f"{_ROOT}/apps/{app_id}/commands/", status_code=303)
 
 
 @router.post("/{cmd_id}/move")
@@ -64,4 +66,4 @@ async def move_command(
         all_cmds[idx].order, all_cmds[idx + 1].order = all_cmds[idx + 1].order, all_cmds[idx].order
 
     db.commit()
-    return RedirectResponse(url=f"/apps/{app_id}/commands/", status_code=303)
+    return RedirectResponse(url=f"{_ROOT}/apps/{app_id}/commands/", status_code=303)

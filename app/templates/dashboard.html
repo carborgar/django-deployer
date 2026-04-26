@@ -9,7 +9,7 @@
   <div class="bg-gray-800 rounded-xl p-10 text-center text-gray-400">
     <p class="text-4xl mb-3">🚀</p>
     <p class="text-lg">Aún no tienes ninguna app registrada.</p>
-    <a href="/apps/new" class="mt-4 inline-block bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg transition">
+    <a href="{{ root_path }}/apps/new" class="mt-4 inline-block bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg transition">
       Registrar primera app
     </a>
   </div>
@@ -17,7 +17,7 @@
   <div class="grid grid-cols-1 gap-4">
     {% for app in apps %}
     <div class="bg-gray-800 rounded-xl p-5 flex items-center gap-5 hover:bg-gray-750 transition"
-         hx-get="/apps/{{ app.id }}/status"
+         hx-get="{{ root_path }}/apps/{{ app.id }}/status"
          hx-trigger="every 5s"
          hx-swap="none"
          hx-on::after-request="updateCard({{ app.id }}, event)">
@@ -33,7 +33,7 @@
 
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-3">
-          <a href="/apps/{{ app.id }}" class="font-semibold text-white hover:text-indigo-300 transition">
+          <a href="{{ root_path }}/apps/{{ app.id }}" class="font-semibold text-white hover:text-indigo-300 transition">
             {{ app.name }}
           </a>
           <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded font-mono">/{{ app.path_prefix }}/</span>
@@ -55,13 +55,13 @@
       </div>
 
       <div class="flex gap-2 flex-shrink-0">
-        <form method="post" action="/apps/{{ app.id }}/deploy">
+        <form method="post" action="{{ root_path }}/apps/{{ app.id }}/deploy">
           <button class="bg-indigo-700 hover:bg-indigo-600 text-white text-sm px-3 py-1.5 rounded transition"
                   {% if status == 'running' %}disabled{% endif %}>
             {% if status == 'running' %}Desplegando…{% else %}Deploy{% endif %}
           </button>
         </form>
-        <a href="/apps/{{ app.id }}" class="bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm px-3 py-1.5 rounded transition">
+        <a href="{{ root_path }}/apps/{{ app.id }}" class="bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm px-3 py-1.5 rounded transition">
           Ver
         </a>
       </div>

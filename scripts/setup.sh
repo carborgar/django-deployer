@@ -17,7 +17,7 @@ echo "============================================"
 # --- Dependencias del sistema ---
 echo "[1/7] Instalando dependencias del sistema..."
 apt-get update -qq
-apt-get install -y -qq nginx python3 python3-pip python3-venv git curl
+apt-get install -y -qq nginx python3 python3-pip python3-venv git curl rsync
 
 # --- Directorios ---
 echo "[2/7] Creando estructura de directorios..."

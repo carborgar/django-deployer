@@ -24,24 +24,24 @@ echo "[2/7] Creando estructura de directorios..."
 mkdir -p "$DEPLOYER_DIR" "$APPS_DIR" "$KEY_DIR"
 chmod 750 "$KEY_DIR"
 
-# --- Clave de cifrado ---
-echo "[3/7] Generando clave de cifrado para variables de entorno..."
-KEY_FILE="$KEY_DIR/secret.key"
-if [ ! -f "$KEY_FILE" ]; then
-    python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" > "$KEY_FILE"
-    chmod 600 "$KEY_FILE"
-    echo "    ✓ Clave generada en $KEY_FILE"
-else
-    echo "    ✓ Ya existe clave en $KEY_FILE — no se sobreescribe"
-fi
-
 # --- Virtualenv del deployer ---
-echo "[4/7] Configurando virtualenv del deployer..."
+echo "[3/7] Configurando virtualenv del deployer..."
 if [ ! -d "$DEPLOYER_DIR/venv" ]; then
     python3 -m venv "$DEPLOYER_DIR/venv"
 fi
 "$DEPLOYER_DIR/venv/bin/pip" install --quiet --upgrade pip
 "$DEPLOYER_DIR/venv/bin/pip" install --quiet -r "$(dirname "$0")/../requirements.txt"
+
+# --- Clave de cifrado ---
+echo "[4/7] Generando clave de cifrado para variables de entorno..."
+KEY_FILE="$KEY_DIR/secret.key"
+if [ ! -f "$KEY_FILE" ]; then
+    "$DEPLOYER_DIR/venv/bin/python" -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" > "$KEY_FILE"
+    chmod 600 "$KEY_FILE"
+    echo "    ✓ Clave generada en $KEY_FILE"
+else
+    echo "    ✓ Ya existe clave en $KEY_FILE — no se sobreescribe"
+fi
 
 # Copiar el código del deployer
 rsync -a --exclude='__pycache__' "$(dirname "$0")/../" "$DEPLOYER_DIR/src/"

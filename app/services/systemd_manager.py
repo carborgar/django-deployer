@@ -5,7 +5,6 @@ El servicio corre gunicorn con el socket en el puerto configurado.
 import logging
 import os
 import subprocess
-import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -60,26 +59,24 @@ def create_service(app) -> bool:
     )
 
     service_path = os.path.join(SYSTEMD_DIR, f"django-{app.name}.service")
-    tmp_path = ""
     try:
-        with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
-            tmp.write(content)
-            tmp_path = tmp.name
-        install = subprocess.run(
-            ["sudo", "-n", "install", "-m", "0644", tmp_path, service_path],
+        # Usamos `sudo tee` para escribir ficheros en /etc/systemd sin necesitar
+        # permisos de escritura directos como www-data.
+        tee = subprocess.run(
+            ["sudo", "-n", "tee", service_path],
+            input=content,
             check=False,
             capture_output=True,
             text=True,
         )
-        if install.returncode != 0:
-            logger.error(f"No se pudo instalar {service_path}: {install.stderr.strip()}")
+        if tee.returncode != 0:
+            logger.error(f"No se pudo escribir {service_path} via tee: {tee.stderr.strip()}")
             return False
+        # Asegurar permisos correctos
+        subprocess.run(["sudo", "-n", "chmod", "0644", service_path], check=False)
     except OSError as e:
         logger.error(f"No se pudo preparar unidad {service_path}: {e}")
         return False
-    finally:
-        if tmp_path and os.path.exists(tmp_path):
-            os.remove(tmp_path)
 
     daemon_reload = subprocess.run(["sudo", "-n", "systemctl", "daemon-reload"], check=False, capture_output=True, text=True)
     if daemon_reload.returncode != 0:

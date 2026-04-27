@@ -112,7 +112,8 @@ www-data ALL=(root) NOPASSWD: /bin/systemctl enable django-*
 www-data ALL=(root) NOPASSWD: /bin/systemctl disable django-*
 www-data ALL=(root) NOPASSWD: /bin/systemctl stop django-*
 www-data ALL=(root) NOPASSWD: /usr/sbin/nginx -t
-www-data ALL=(root) NOPASSWD: /usr/bin/install -m 0644 * /etc/systemd/system/django-*.service
+www-data ALL=(root) NOPASSWD: /usr/bin/tee /etc/systemd/system/django-*.service
+www-data ALL=(root) NOPASSWD: /bin/chmod 0644 /etc/systemd/system/django-*.service
 www-data ALL=(root) NOPASSWD: /bin/rm -f /etc/systemd/system/django-*.service
 EOF
 chmod 440 /etc/sudoers.d/django-deployer

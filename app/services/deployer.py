@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.models import App, Deployment, EnvVar, engine
 from app.crypto import decrypt
+from app.services import systemd_manager
 
 logger = logging.getLogger(__name__)
 
@@ -139,9 +140,12 @@ def _deploy_sync(app_id: int, commit_sha: str | None):
                     if rc != 0:
                         raise RuntimeError(f"Comando falló: {cmd.command}")
 
-                # 7. Reiniciar servicio systemd
+                # 7. Crear/actualizar unidad systemd y reiniciar
                 stage = "systemd"
                 service = f"django-{app.name}"
+                lf.write(f"--- Configurando servicio systemd {service} ---\n")
+                if not systemd_manager.create_service(app):
+                    lf.write("⚠ No se pudo escribir la unidad systemd (¿permisos de sudoers?). Intentando restart de todas formas...\n\n")
                 lf.write(f"--- Reiniciando {service} ---\n")
                 last_command = f"sudo -n systemctl restart {service}"
                 rc, _ = _run(f"sudo -n systemctl restart {service}", app_dir, os.environ.copy(), lf)

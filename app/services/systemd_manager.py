@@ -5,6 +5,7 @@ El servicio corre gunicorn con el socket en el puerto configurado.
 import logging
 import os
 import subprocess
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +60,37 @@ def create_service(app) -> bool:
     )
 
     service_path = os.path.join(SYSTEMD_DIR, f"django-{app.name}.service")
-    with open(service_path, "w") as f:
-        f.write(content)
+    tmp_path = ""
+    try:
+        with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        install = subprocess.run(
+            ["sudo", "-n", "install", "-m", "0644", tmp_path, service_path],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if install.returncode != 0:
+            logger.error(f"No se pudo instalar {service_path}: {install.stderr.strip()}")
+            return False
+    except OSError as e:
+        logger.error(f"No se pudo preparar unidad {service_path}: {e}")
+        return False
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
-    subprocess.run(["systemctl", "daemon-reload"], check=False)
-    subprocess.run(["systemctl", "enable", f"django-{app.name}"], check=False)
+    daemon_reload = subprocess.run(["sudo", "-n", "systemctl", "daemon-reload"], check=False, capture_output=True, text=True)
+    if daemon_reload.returncode != 0:
+        logger.error(f"systemctl daemon-reload falló: {daemon_reload.stderr.strip()}")
+        return False
+
+    enable = subprocess.run(["sudo", "-n", "systemctl", "enable", f"django-{app.name}"], check=False, capture_output=True, text=True)
+    if enable.returncode != 0:
+        logger.error(f"systemctl enable django-{app.name} falló: {enable.stderr.strip()}")
+        return False
+
     logger.info(f"Servicio systemd creado: {service_path}")
     return True
 
@@ -71,11 +98,23 @@ def create_service(app) -> bool:
 def remove_service(app) -> bool:
     """Detiene, deshabilita y elimina el servicio."""
     service = f"django-{app.name}"
-    subprocess.run(["systemctl", "stop", service], check=False)
-    subprocess.run(["systemctl", "disable", service], check=False)
+    stop = subprocess.run(["sudo", "-n", "systemctl", "stop", service], check=False, capture_output=True, text=True)
+    if stop.returncode != 0:
+        logger.warning(f"systemctl stop {service} devolvió {stop.returncode}: {stop.stderr.strip()}")
+
+    disable = subprocess.run(["sudo", "-n", "systemctl", "disable", service], check=False, capture_output=True, text=True)
+    if disable.returncode != 0:
+        logger.warning(f"systemctl disable {service} devolvió {disable.returncode}: {disable.stderr.strip()}")
 
     service_path = os.path.join(SYSTEMD_DIR, f"{service}.service")
     if os.path.exists(service_path):
-        os.remove(service_path)
-    subprocess.run(["systemctl", "daemon-reload"], check=False)
+        rm = subprocess.run(["sudo", "-n", "rm", "-f", service_path], check=False, capture_output=True, text=True)
+        if rm.returncode != 0:
+            logger.error(f"No se pudo eliminar {service_path}: {rm.stderr.strip()}")
+            return False
+    daemon_reload = subprocess.run(["sudo", "-n", "systemctl", "daemon-reload"], check=False, capture_output=True, text=True)
+    if daemon_reload.returncode != 0:
+        logger.error(f"systemctl daemon-reload falló al eliminar {service}: {daemon_reload.stderr.strip()}")
+        return False
+
     return True

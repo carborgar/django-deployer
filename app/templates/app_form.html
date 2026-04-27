@@ -4,6 +4,7 @@
 {% block content %}
 <div class="max-w-xl mx-auto">
   <h1 class="text-2xl font-bold mb-6">{{ 'Editar' if app else 'Registrar nueva' }} app</h1>
+  {% set fd = form_data or {} %}
 
   {% if error %}
   <div class="bg-red-900 border border-red-700 text-red-200 rounded-lg px-4 py-3 mb-4">{{ error }}</div>
@@ -16,6 +17,7 @@
     <div>
       <label class="block text-sm font-medium text-gray-300 mb-1">Nombre <span class="text-red-400">*</span></label>
       <input type="text" name="name" required placeholder="mi-app"
+             value="{{ fd.get('name', '') }}"
              class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
              pattern="[a-z0-9\-]+" title="Solo minúsculas, números y guiones"/>
       <p class="text-xs text-gray-500 mt-1">Solo minúsculas, números y guiones. Se usa como identificador único.</p>
@@ -25,7 +27,7 @@
     <div>
       <label class="block text-sm font-medium text-gray-300 mb-1">URL del repositorio GitHub <span class="text-red-400">*</span></label>
       <input type="url" name="repo_url" required
-             value="{{ app.repo_url if app else '' }}"
+             value="{{ app.repo_url if app else fd.get('repo_url', '') }}"
              placeholder="https://github.com/usuario/mi-app"
              class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"/>
     </div>
@@ -33,13 +35,13 @@
     <div class="grid grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium text-gray-300 mb-1">Branch</label>
-        <input type="text" name="branch" value="{{ app.branch if app else 'main' }}"
+        <input type="text" name="branch" value="{{ app.branch if app else fd.get('branch', 'main') }}"
                class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"/>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-300 mb-1">Puerto <span class="text-red-400">*</span></label>
         <input type="number" name="port" required min="1024" max="65535"
-               value="{{ app.port if app else '8001' }}"
+               value="{{ app.port if app else fd.get('port', '8001') }}"
                class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"/>
       </div>
     </div>
@@ -49,7 +51,7 @@
       <div class="flex items-center">
         <span class="bg-gray-600 border border-gray-600 px-3 py-2 rounded-l-lg text-gray-400">/</span>
         <input type="text" name="path_prefix" required
-               value="{{ app.path_prefix if app else '' }}"
+               value="{{ app.path_prefix if app else fd.get('path_prefix', '') }}"
                placeholder="mi-app"
                class="flex-1 bg-gray-700 border border-gray-600 border-l-0 rounded-r-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"/>
       </div>
@@ -64,6 +66,15 @@
              placeholder="{{ '••••••••' if app and app.github_token else 'ghp_...' }}"
              class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"/>
     </div>
+
+    {% if not app %}
+    <div class="border border-gray-700 rounded-lg p-4 bg-gray-900">
+      <h2 class="text-sm font-semibold text-gray-200 mb-2">Variables de entorno iniciales (opcional)</h2>
+      <p class="text-xs text-gray-500 mb-3">Formato tipo `.env` (una por línea). Se guardan cifradas y disponibles desde el primer deploy.</p>
+      <textarea name="env_text" rows="7" placeholder="DJANGO_SETTINGS_MODULE=mi_app.settings&#10;SECRET_KEY=...&#10;DEBUG=False"
+                class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-indigo-500 resize-y">{{ fd.get('env_text', '') }}</textarea>
+    </div>
+    {% endif %}
 
     {% if app %}
     <div class="flex items-center gap-3">

@@ -6,6 +6,7 @@ import os
 from app.crypto import encrypt, decrypt
 from app.database import get_db
 from app.models import App, EnvVar
+from app.services.env_parser import is_valid_env_key, parse_env_text
 from app.templating import templates
 
 router = APIRouter(prefix="/apps/{app_id}/env")
@@ -31,6 +32,9 @@ async def add_env(
     app = db.query(App).filter(App.id == app_id).first()
     if not app:
         raise HTTPException(status_code=404)
+    key = key.strip()
+    if not is_valid_env_key(key):
+        raise HTTPException(status_code=400, detail="Clave de variable inválida")
     existing = db.query(EnvVar).filter(EnvVar.app_id == app_id, EnvVar.key == key).first()
     if existing:
         existing.value_encrypted = encrypt(value)
@@ -51,13 +55,8 @@ async def bulk_env(
     if not app:
         raise HTTPException(status_code=404)
 
-    for line in env_text.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
+    pairs, _ = parse_env_text(env_text)
+    for key, value in pairs:
         existing = db.query(EnvVar).filter(EnvVar.app_id == app_id, EnvVar.key == key).first()
         if existing:
             existing.value_encrypted = encrypt(value)

@@ -44,23 +44,20 @@
 <script>
 const logEl = document.getElementById('log-output');
 const deploymentId = {{ deployment.id }};
-const status = "{{ deployment.status }}";
 const rootPath = "{{ root_path }}";
 
-if (status === 'running') {
-  logEl.textContent = '';
-  const es = new EventSource(rootPath + '/logs/deployment/' + deploymentId + '/stream');
-  es.onmessage = (e) => {
-    if (e.data === '[FIN]') { es.close(); return; }
-    logEl.textContent += e.data + '\n';
-    logEl.scrollTop = logEl.scrollHeight;
-  };
-  es.onerror = () => { es.close(); };
-} else {
-  fetch(rootPath + '/logs/deployment/' + deploymentId + '/stream')
-    .catch(() => {});
-  // Mostramos el log guardado en el modelo si existe
-  logEl.textContent = {{ deployment.log | tojson }} || '(sin log en BD — ver archivo en servidor)';
-}
+logEl.textContent = '';
+const es = new EventSource(rootPath + '/logs/deployment/' + deploymentId + '/stream');
+es.onmessage = (e) => {
+  if (e.data === '[FIN]') { es.close(); return; }
+  logEl.textContent += e.data + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+};
+es.onerror = () => {
+  es.close();
+  if (!logEl.textContent.trim()) {
+    logEl.textContent = {{ deployment.log | tojson }} || 'No se pudo abrir el stream de logs';
+  }
+};
 </script>
 {% endblock %}

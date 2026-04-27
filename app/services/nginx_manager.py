@@ -29,12 +29,27 @@ server {{
     listen 80 default_server;
     listen [::]:80 default_server;
 
+    # SSE logs del panel (sin buffering)
+    location /deployer/logs/deployment/ {{
+        proxy_pass http://127.0.0.1:8100/logs/deployment/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        add_header X-Accel-Buffering no;
+    }}
+
     # Panel deployer
     location /deployer/ {{
         proxy_pass http://127.0.0.1:8100/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }}
 
 {locations}
@@ -77,12 +92,12 @@ def remove(app):
 
 
 def _reload_nginx():
-    result = subprocess.run(["nginx", "-t"], capture_output=True, text=True)
+    result = subprocess.run(["sudo", "-n", "nginx", "-t"], capture_output=True, text=True)
     if result.returncode != 0:
         logger.error(f"nginx config test falló:\n{result.stderr}")
         return False
 
-    reload = subprocess.run(["systemctl", "reload", "nginx"], capture_output=True, text=True)
+    reload = subprocess.run(["sudo", "-n", "systemctl", "reload", "nginx"], capture_output=True, text=True)
     if reload.returncode != 0:
         logger.error(f"nginx reload falló:\n{reload.stderr}")
         return False

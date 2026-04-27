@@ -28,6 +28,8 @@ sudo bash scripts/setup.sh
 
 El panel queda accesible en `http://IP_SERVIDOR/deployer/`
 
+`scripts/setup.sh` también crea `/etc/sudoers.d/django-deployer` para permitir que el panel ejecute operaciones necesarias de `systemctl`/`nginx` sin prompt interactivo.
+
 ## Desarrollo local
 
 ```bash

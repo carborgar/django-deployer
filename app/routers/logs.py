@@ -23,11 +23,9 @@ async def stream_deployment_log(deployment_id: int, db: Session = Depends(get_db
     log_path = os.path.join(APPS_DIR, d.app.name, "logs", f"deploy-{deployment_id}.log")
 
     async def event_generator():
-        if not os.path.exists(log_path):
-            yield f"data: Esperando log...\n\n"
-            await asyncio.sleep(1)
-
         pos = 0
+        sent_waiting = False
+
         while True:
             db.refresh(d)
             if os.path.exists(log_path):
@@ -38,14 +36,33 @@ async def stream_deployment_log(deployment_id: int, db: Session = Depends(get_db
                         for line in chunk.splitlines():
                             yield f"data: {line}\n\n"
                         pos = f.tell()
+            elif not sent_waiting:
+                sent_waiting = True
+                yield "data: Esperando log...\n\n"
 
             if d.status in ("success", "failed"):
+                # Fuerza una última lectura por si se escribió al final justo antes de cerrar.
+                if os.path.exists(log_path):
+                    with open(log_path, "r") as f:
+                        f.seek(pos)
+                        chunk = f.read()
+                        if chunk:
+                            for line in chunk.splitlines():
+                                yield f"data: {line}\n\n"
                 yield "data: [FIN]\n\n"
                 break
 
             await asyncio.sleep(0.5)
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.get("/app/{app_id}/tail")

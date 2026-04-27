@@ -112,9 +112,10 @@ sudo chmod -R 755 /opt/apps
 Si tu app necesita `sudo systemctl restart`, añade esto:
 
 ```bash
-sudo visudo
-# Añadir al final del archivo:
-www-data ALL=(ALL) NOPASSWD: /bin/systemctl restart django-*, /bin/systemctl start django-*, /bin/systemctl stop django-*
+# setup.sh ya crea /etc/sudoers.d/django-deployer con permisos mínimos
+# para systemd/nginx. Verifica que exista y sea válido:
+sudo ls -l /etc/sudoers.d/django-deployer
+sudo visudo -cf /etc/sudoers.d/django-deployer
 ```
 
 ### 3.2 Registrar la app en el panel

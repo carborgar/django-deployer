@@ -27,6 +27,7 @@ ExecStart={venv_dir}/bin/gunicorn \
     --workers 2 \
     --bind 127.0.0.1:{port} \
     --pid {logs_dir}/gunicorn.pid \
+    --worker-tmp-dir /tmp \
     --access-logfile {logs_dir}/app.log \
     --error-logfile {logs_dir}/app.log \
     {wsgi_module}

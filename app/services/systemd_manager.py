@@ -21,12 +21,14 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory={repo_dir}
+Environment=HOME=/tmp
 EnvironmentFile={env_file}
-ExecStart={venv_dir}/bin/gunicorn \\
-    --workers 2 \\
-    --bind 127.0.0.1:{port} \\
-    --access-logfile {logs_dir}/app.log \\
-    --error-logfile {logs_dir}/app.log \\
+ExecStart={venv_dir}/bin/gunicorn \
+    --workers 2 \
+    --bind 127.0.0.1:{port} \
+    --pid {logs_dir}/gunicorn.pid \
+    --access-logfile {logs_dir}/app.log \
+    --error-logfile {logs_dir}/app.log \
     {wsgi_module}
 Restart=on-failure
 RestartSec=5s

@@ -183,6 +183,23 @@ async def manual_deploy(app_id: int, db: Session = Depends(get_db)):
     return RedirectResponse(url=f"{_ROOT}/apps/{app_id}", status_code=303)
 
 
+@router.post("/apps/{app_id}/restart")
+async def restart_app(app_id: int, db: Session = Depends(get_db)):
+    """Reinicia el proceso gunicorn sin hacer un deploy completo."""
+    app = db.query(App).filter(App.id == app_id).first()
+    if not app:
+        raise HTTPException(status_code=404)
+    import subprocess
+    service = f"django-{app.name}"
+    result = subprocess.run(
+        ["sudo", "-n", "systemctl", "restart", service],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        logger.error(f"Restart manual de {service} falló: {result.stderr.strip()}")
+    return RedirectResponse(url=f"{_ROOT}/apps/{app_id}", status_code=303)
+
+
 @router.get("/apps/{app_id}/status")
 async def app_status(app_id: int, db: Session = Depends(get_db)):
     """Endpoint ligero para HTMX polling de estado."""
